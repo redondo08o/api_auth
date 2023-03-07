@@ -4,6 +4,7 @@ namespace App\Http\Controllers\api;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
@@ -39,12 +40,16 @@ class AuthController extends Controller
             'email' => ['required' , 'email'],
             'password' => ['required']
         ]);
+        
 
         if(Auth::attempt($credentials)){
+            $date = new DateTime();
+            $date->modify('+ 24 hours');
+
             $user = Auth::user();
-            $token = $user->createToken('token')->plainTextToken;
+            $token = $user->createToken('token',['create','read'],$date)->plainTextToken;
             $cookie = cookie('cookie_token', $token, 60 * 24);
-            return response(["token" => $token] , Response::HTTP_OK)->withCookie($cookie);
+            return response(["token" => $token , "status" => Response::HTTP_OK] , Response::HTTP_OK)->withCookie($cookie);
         }else{
             return response(["message" => "credenciales invalidas"] , Response::HTTP_UNAUTHORIZED);
         }
@@ -59,8 +64,9 @@ class AuthController extends Controller
     }
 
     public function logout() {
+        Auth::logout();
         auth()->user()->tokens()->delete();
         $cookie = Cookie::forget('cookie_token');
-        return response(['message'=> "cierre de sesion ok $cookie"], Response::HTTP_OK)->withCookie($cookie);
+        return response(['message'=> "cierre de sesion ok "], Response::HTTP_OK)->withCookie($cookie);
     }
 }
